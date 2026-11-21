@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#176b55">
+<title>Pyramids Gardens Property Leads</title>
+<style>
+  :root { font-family: system-ui, sans-serif; color:#17211d; background:#f3f6f4; }
+  * { box-sizing:border-box }
+  body { margin:0; }
+  header { background:#176b55; color:white; padding:20px 16px; }
+  header h1 { margin:0 0 5px; font-size:1.35rem }
+  header p { margin:0; opacity:.9; font-size:.92rem }
+  main { max-width:850px; margin:auto; padding:16px; }
+  .panel { background:white; padding:16px; border-radius:14px; margin-bottom:14px;
+           box-shadow:0 2px 10px #1020180c; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  label { display:block; font-size:.85rem; font-weight:650; margin-bottom:4px; }
+  input,select,textarea,button { font:inherit; }
+  input,select,textarea { width:100%; padding:11px; border:1px solid #ccd6d0;
+                           border-radius:9px; background:white; }
+  textarea { min-height:75px; resize:vertical; }
+  .wide { grid-column:1/-1 }
+  button { border:0; border-radius:9px; padding:11px 14px; background:#176b55;
+           color:white; font-weight:650; cursor:pointer; }
+  button.secondary { background:#e5eee9; color:#173c30 }
+  button.danger { background:#a93636 }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
+  .filters { display:flex; gap:8px; margin-bottom:12px }
+  .filters input,.filters select { min-width:0 }
+  .lead { border:1px solid #e2e9e4; border-radius:12px; padding:14px; margin:10px 0; }
+  .lead h3 { margin:0 0 6px; }
+  .muted { color:#5d6b64; font-size:.9rem; }
+  .tag { display:inline-block; background:#e8f2ed; color:#20533f; padding:3px 8px;
+         border-radius:99px; font-size:.8rem; margin:2px 4px 2px 0; }
+  a { color:#176b55; overflow-wrap:anywhere }
+  .empty { text-align:center; color:#64736b; padding:22px 8px; }
+  @media(max-width:560px) {
+    .grid { grid-template-columns:1fr }
+    .wide { grid-column:auto }
+    .filters { flex-direction:column }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pyramids Gardens Property Leads</h1>
+  <p>Residential real estate · Hadayek Al-Ahram, Giza</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>Add a lead</h2>
+    <form id="leadForm">
+      <div class="grid">
+        <div><label for="title">Listing / lead name *</label>
+          <input id="title" required placeholder="e.g. 3-bedroom apartment, Gate 2"></div>
+        <div><label for="type">Property type</label>
+          <select id="type"><option>Apartment</option><option>Villa</option>
+            <option>Duplex</option><option>Studio</option><option>Other</option></select></div>
+        <div><label for="price">Price (EGP)</label>
+          <input id="price" inputmode="numeric" placeholder="e.g. 2500000"></div>
+        <div><label for="area">Area (m²)</label>
+          <input id="area" inputmode="numeric" placeholder="e.g. 140"></div>
+        <div><label for="gate">Gate / street / phase</label>
+          <input id="gate" placeholder="e.g. Gate 4, 2nd district"></div>
+        <div><label for="contact">Contact (only if publicly shared/consented)</label>
+          <input id="contact" placeholder="Name, phone, or agent"></div>
+        <div><label for="status">Status</label>
+          <select id="status"><option>New</option><option>Contacted</option>
+            <option>Interested</option><option>Not a fit</option><option>Closed</option></select></div>
+        <div><label for="source">Source link</label>
+          <input id="source" type="url" placeholder="https://..."></div>
+        <div class="wide"><label for="notes">Notes</label>
+          <textarea id="notes" placeholder="Details, viewing date, consent, follow-up…"></textarea></div>
+      </div>
+      <div class="actions"><button type="submit">Save lead</button>
+        <button type="reset" class="secondary">Clear form</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Your leads <span id="count" class="muted"></span></h2>
+    <div class="filters">
+      <input id="search" placeholder="Search leads…">
+      <select id="statusFilter"><option value="">All statuses</option>
+        <option>New</option><option>Contacted</option><option>Interested</option>
+        <option>Not a fit</option><option>Closed</option></select>
+    </div>
+    <div id="leads"></div>
+    <div class="actions">
+      <button id="export" class="secondary">Export backup (JSON)</button>
+      <label class="secondary" style="padding:10px 12px;border-radius:9px;cursor:pointer">
+        Import backup <input id="import" type="file" accept="application/json" hidden>
+      </label>
+      <button id="clearAll" class="danger">Delete all leads</button>
+    </div>
+    <p class="muted">Leads are saved only in this browser on this device. Export backups regularly.</p>
+  </section>
+</main>
+<script>
+const KEY = "pg-real-estate-leads-v1";
+let leads = load();
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+  catch { return []; }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(leads)); render(); }
+const byId = id => document.getElementById(id);
+byId("leadForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const lead = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    title: byId("title").value.trim(), type: byId("type").value,
+    price: byId("price").value.trim(), area: byId("area").value.trim(),
+    gate: byId("gate").value.trim(), contact: byId("contact").value.trim(),
+    status: byId("status").value, source: byId("source").value.trim(),
+    notes: byId("notes").value.trim(), added: new Date().toISOString()
+  };
+  leads.unshift(lead); save(); e.target.reset();
+});
+byId("search").addEventListener("input", render);
+byId("statusFilter").addEventListener("change", render);
+byId("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(leads, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "pyramids-gardens-leads.json"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+byId("import").addEventListener("change", async e => {
+  try {
+    const data = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(data)) throw Error();
+    leads = data; save(); alert("Backup imported.");
+  } catch { alert("That backup file could not be read."); }
+  e.target.value = "";
+});
+byId("clearAll").addEventListener("click", () => {
+  if (confirm("Delete every saved lead from this browser? Export a backup first if needed.")) {
+    leads = []; save();
+  }
+});
+function esc(s="") { return String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function render() {
+  const query = byId("search").value.toLowerCase();
+  const status = byId("statusFilter").value;
+  const shown = leads.filter(x => (!status || x.status === status) &&
+    Object.values(x).join(" ").toLowerCase().includes(query));
+  byId("count").textContent = `(${shown.length}${shown.length !== leads.length ? ` of ${leads.length}` : ""})`;
+  byId("leads").innerHTML = shown.length ? shown.map(x => `
+    <article class="lead">
+      <h3>${esc(x.title)}</h3>
+      <span class="tag">${esc(x.type)}</span><span class="tag">${esc(x.status)}</span>
+      <p class="muted">${x.price ? `EGP ${esc(x.price)}` : "Price not listed"}
+        ${x.area ? ` · ${esc(x.area)} m²` : ""}${x.gate ? ` · ${esc(x.gate)}` : ""}</p>
+      ${x.contact ? `<p>Contact: ${esc(x.contact)}</p>` : ""}
+      ${x.notes ? `<p>${esc(x.notes)}</p>` : ""}
+      ${x.source ? `<p><a href="${esc(x.source)}" target="_blank" rel="noopener">Open source listing</a></p>` : ""}
+      <button class="danger" onclick="removeLead('${esc(x.id)}')">Delete</button>
+    </article>`).join("") : `<div class="empty">No leads yet. Add one above.</div>`;
+}
+function removeLead(id) {
+  if (confirm("Delete this lead?")) { leads = leads.filter(x => x.id !== id); save(); }
+}
+render();
+</script>
+</body>
+  </html>
